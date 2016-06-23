@@ -1,4 +1,4 @@
-# train_head_detector
+# CSK
 I just want to build a c++ code for CSK.
 
 Reference
