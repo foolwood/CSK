@@ -19,26 +19,82 @@ int main(){
 	if (load_video_info(videoPath, groundtruthRect,fileName) != 1)
 		return -1;
 
-	Mat frame;
-	Mat frame_gray;
+	float padding = 1;					
+	float output_sigma_factor = 1.0/16.0;		
+	float sigma = 0.2;
+	float lambda = 1e-2;
+	float interp_factor = 0.075;
 
-	namedWindow(videoName,WINDOW_NORMAL);
-	double duration;
-	for (int i = 0; i < fileName.size(); ++i)
+	
+
+	Size target_sz(groundtruthRect[0].width, groundtruthRect[0].height);
+	//Size sz(target_sz.width * 2, target_sz.height*1.4);
+	Size sz(target_sz.width * 2, target_sz.height*2);
+	Point pos(groundtruthRect[0].x + (target_sz.width >> 1), groundtruthRect[0].y + (target_sz.height >> 1));
+	
+	float output_sigma = sqrt(float(target_sz.area())) * output_sigma_factor;
+	Mat y = getGaussian2(sz, output_sigma, CV_32F);
+	Mat yf;
+	dft(y, yf);
+
+	Mat cos_window(target_sz, CV_32FC1);
+	calculateHann(cos_window, sz);
+
+	Mat im;
+	Mat im_gray;
+	Mat z,new_z;
+	Mat alphaf, new_alphaf;
+	for (int frame = 0; frame < fileName.size(); ++frame)
 	{
 		
-		frame = imread(fileName[i], IMREAD_COLOR);
-		frame_gray = imread(fileName[i], IMREAD_GRAYSCALE);
-		Mat subWindow;
-		Point centraCoor(groundtruthRect[i].x + (groundtruthRect[i].width >> 1), groundtruthRect[i].y + (groundtruthRect[i].height >> 1));
-		Size sz(groundtruthRect[i].width, groundtruthRect[i].height);
-		Mat cos_window(sz, CV_32FC1, Scalar(0.0));
-		calculatehann(cos_window, sz);
-		getSubWindow(frame_gray, subWindow, centraCoor, sz, cos_window);
+		im = imread(fileName[frame], IMREAD_COLOR);
+		im_gray = imread(fileName[frame], IMREAD_GRAYSCALE);
+
+		Mat x;
+		getSubWindow(im_gray, x, pos, sz, cos_window);
 		
-		rectangle(frame, groundtruthRect[i], Scalar(0, 255, 0), 2);
-		putText(frame, to_string(i), Point(20, 40),6, 1, Scalar(0, 255, 255),2);
-		imshow(videoName, frame);
+		Mat k,kf;
+		Mat response;
+		if (frame > 0)
+		{
+			denseGaussKernel(sigma, x, z, k);
+			dft(k, kf);
+			idft(alphaf.dot(kf), response);
+			vector<Mat> planes;
+			split(response, planes);
+			response = planes[0];
+			Point maxLoc;
+			minMaxLoc(response, NULL, NULL, NULL, &maxLoc);
+			pos.x = pos.x - (sz.width >> 1) + maxLoc.x;
+			pos.y = pos.y - (sz.height >> 1) + maxLoc.y;
+		}
+		
+
+		//get subwindow at current estimated target position, to train classifer
+		getSubWindow(im_gray, x, pos, sz, cos_window);
+
+		denseGaussKernel(sigma, x, x, k);
+		dft(k, kf);
+		new_alphaf = yf / (kf + lambda);
+		new_z = x;
+
+		if (frame == 0)
+		{
+			alphaf = new_alphaf;
+			z = x;
+		}
+		else
+		{
+			alphaf = (1 - interp_factor) * alphaf + interp_factor * new_alphaf;
+			z = (1 - interp_factor) * z + interp_factor * new_z;
+		}
+
+
+
+		Rect rect_position(pos.x - (target_sz.width >> 1), pos.y - (target_sz.height >> 1), target_sz.width, target_sz.height);
+		rectangle(im, rect_position, Scalar(0, 255, 0), 2);
+		putText(im, to_string(frame), Point(20, 40), 6, 1, Scalar(0, 255, 255), 2);
+		imshow(videoName, im);
 		char key = waitKey(1);
 		if (key == 27)
 			break;
