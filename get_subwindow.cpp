@@ -1,5 +1,5 @@
 #include "get_subwindow.h"
-#define PI 3.1415926
+#define PI 3.141592653589793
 
 void getSubWindow(Mat &frame, Mat &subWindow, Point centraCoor, Size sz, Mat &cos_window){
 	Point lefttop;
@@ -12,7 +12,7 @@ void getSubWindow(Mat &frame, Mat &subWindow, Point centraCoor, Size sz, Mat &co
 	frame(roiRect).copyTo(subWindow);
 	cv::resize(subWindow, subWindow, sz);
 	subWindow.convertTo(subWindow, CV_32FC1,1.0/255.0,-0.5);
-	subWindow.dot(cos_window);
+	subWindow = subWindow.mul(cos_window);
 }
 
 
@@ -30,37 +30,21 @@ void denseGaussKernel(float sigma, Mat x, Mat y, Mat &k){
 	Mat xf = fft(x);
 	Mat yf = fft(y);
 	double xx = norm(x);
+	xx = xx*xx;
 	double yy = norm(y);
+	yy = yy*yy;
 
-	Mat xyf,yf_conj;
+	Mat yf_conj;
 	vector<Mat> planes;
 	split(yf, planes);
 	planes[1] = planes[1] * -1;
-	merge(planes,yf_conj);
-	xyf = xf.dot(yf_conj);
+	merge(planes, yf_conj);
+	Mat xyf = complexMul(xf, yf_conj);
 
 	Mat xy;
-	idft(xyf, xy);
-
-	int cx = xy.cols / 2;
-	int cy = xy.rows / 2;
-
-	Mat q0(xy, Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
-	Mat q1(xy, Rect(cx, 0, cx, cy));  // Top-Right
-	Mat q2(xy, Rect(0, cy, cx, cy));  // Bottom-Left
-	Mat q3(xy, Rect(cx, cy, cx, cy)); // Bottom-Right
-
-	Mat tmp;                           // swap quadrants (Top-Left with Bottom-Right)
-	q0.copyTo(tmp);
-	q3.copyTo(q0);
-	tmp.copyTo(q3);
-
-	q1.copyTo(tmp);                    // swap quadrant (Top-Right with Bottom-Left)
-	q2.copyTo(q1);
-	tmp.copyTo(q2);
-	split(xy, planes);
-	xy = planes[0];
-	exp(-1 / (sigma*sigma) * max(0, (xx + yy - 2 * xy) / (x.cols*x.rows)), k);
+	cv::idft(xyf, xy, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT); // Applying IDFT
+	double numelx1 = x.cols*x.rows;
+	exp(-1 / (sigma*sigma) * abs((xx + yy - 2 * xy) / numelx1), k);
 }
 
 
@@ -90,7 +74,7 @@ cv::Mat getGaussian(int n, double sigma, int ktype)
 	int i;
 	for (i = 0; i < n; i++)
 	{
-		double x = i - (n - 1)*0.5;
+		double x = i - floor(n / 2);
 		double t = fixed_kernel ? (double)fixed_kernel[i] : std::exp(scale2X*x*x);
 		if (ktype == CV_32F)
 		{
@@ -122,4 +106,18 @@ cv::Mat fft(Mat x)
 
 	dft(complexI, complexI);            // this way the result may fit in the source matrix
 	return complexI;
+}
+
+cv::Mat complexMul(Mat x1, Mat x2)
+{
+	vector<Mat> planes1;
+	split(x1, planes1);
+	vector<Mat> planes2;
+	split(x2, planes2);
+	vector<Mat>complex(2);
+	complex[0] = planes1[0].mul(planes2[0]) - planes1[1].mul(planes2[1]);
+	complex[1] = planes1[0].mul(planes2[1]) + planes1[1].mul(planes2[0]);
+	Mat result;
+	merge(complex, result);
+	return result;
 }

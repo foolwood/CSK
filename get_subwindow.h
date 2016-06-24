@@ -1,6 +1,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/core.hpp"
 #include <cmath>
 
 using namespace std;
@@ -17,3 +18,5 @@ cv::Mat getGaussian1(int n, double sigma, int ktype);
 cv::Mat getGaussian2(Size sz, double sigma, int ktype);
 
 cv::Mat fft(Mat x);
+
+cv::Mat complexMul(Mat x1, Mat x2);

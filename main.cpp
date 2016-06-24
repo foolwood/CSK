@@ -9,7 +9,7 @@ using namespace std;
 
 
 string benchmarkPath = "E:/benchmark50/";
-string videoName = "Basketball";
+string videoName = "Boy";
 string videoPath = benchmarkPath + videoName;
 vector<Rect> groundtruthRect;
 vector<String>fileName;
@@ -34,8 +34,7 @@ int main(){
 	
 	float output_sigma = sqrt(float(target_sz.area())) * output_sigma_factor;
 	Mat y = getGaussian2(sz, output_sigma, CV_32F);
-	Mat yf;
-	dft(y, yf);
+	Mat yf = fft(y);
 
 	Mat cos_window(target_sz, CV_32FC1);
 	calculateHann(cos_window, sz);
@@ -58,11 +57,8 @@ int main(){
 		if (frame > 0)
 		{
 			denseGaussKernel(sigma, x, z, k);
-			dft(k, kf);
-			idft(alphaf.dot(kf), response);
-			vector<Mat> planes;
-			split(response, planes);
-			response = planes[0];
+			kf = fft(k);
+			cv::idft(complexMul(alphaf,kf), response, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT); // Applying IDFT
 			Point maxLoc;
 			minMaxLoc(response, NULL, NULL, NULL, &maxLoc);
 			pos.x = pos.x - (sz.width >> 1) + maxLoc.x;
@@ -74,7 +70,7 @@ int main(){
 		getSubWindow(im_gray, x, pos, sz, cos_window);
 
 		denseGaussKernel(sigma, x, x, k);
-		dft(k, kf);
+		kf = fft(k);
 		new_alphaf = yf / (kf + lambda);
 		new_z = x;
 
