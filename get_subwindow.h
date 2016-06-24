@@ -20,3 +20,5 @@ cv::Mat getGaussian2(Size sz, double sigma, int ktype);
 cv::Mat fft(Mat x);
 
 cv::Mat complexMul(Mat x1, Mat x2);
+
+cv::Mat complexDiv(Mat x1, Mat x2);

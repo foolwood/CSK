@@ -43,17 +43,19 @@ int main(){
 	Mat im_gray;
 	Mat z,new_z;
 	Mat alphaf, new_alphaf;
+	Mat x;
+	Mat k, kf;
+	Mat response;
 	for (int frame = 0; frame < fileName.size(); ++frame)
 	{
 		
 		im = imread(fileName[frame], IMREAD_COLOR);
 		im_gray = imread(fileName[frame], IMREAD_GRAYSCALE);
 
-		Mat x;
+		
 		getSubWindow(im_gray, x, pos, sz, cos_window);
 		
-		Mat k,kf;
-		Mat response;
+		
 		if (frame > 0)
 		{
 			denseGaussKernel(sigma, x, z, k);
@@ -71,7 +73,11 @@ int main(){
 
 		denseGaussKernel(sigma, x, x, k);
 		kf = fft(k);
-		new_alphaf = yf / (kf + lambda);
+		vector<Mat> planes;
+		split(kf, planes);
+		planes[0] = planes[0] + lambda;
+		merge(planes, kf);
+		new_alphaf = complexDiv(yf,kf);
 		new_z = x;
 
 		if (frame == 0)
@@ -81,8 +87,8 @@ int main(){
 		}
 		else
 		{
-			alphaf = (1 - interp_factor) * alphaf + interp_factor * new_alphaf;
-			z = (1 - interp_factor) * z + interp_factor * new_z;
+			alphaf = (1.0 - interp_factor) * alphaf + interp_factor * new_alphaf;
+			z = (1.0 - interp_factor) * z + interp_factor * new_z;
 		}
 
 

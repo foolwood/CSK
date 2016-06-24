@@ -121,3 +121,20 @@ cv::Mat complexMul(Mat x1, Mat x2)
 	merge(complex, result);
 	return result;
 }
+
+cv::Mat complexDiv(Mat x1, Mat x2)
+{
+	vector<Mat> planes1;
+	split(x1, planes1);
+	vector<Mat> planes2;
+	split(x2, planes2);
+	vector<Mat>complex(2);
+	Mat cc = planes2[0].mul(planes2[0]);
+	Mat dd = planes2[1].mul(planes2[1]);
+
+	complex[0] = (planes1[0].mul(planes2[0]) + planes1[1].mul(planes2[1])) / (cc + dd);
+	complex[1] = (planes1[0].mul(planes2[1]) - planes1[1].mul(planes2[0])) / (cc + dd);
+	Mat result;
+	merge(complex, result);
+	return result;
+}
