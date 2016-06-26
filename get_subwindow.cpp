@@ -3,14 +3,21 @@
 
 void getSubWindow(Mat &frame, Mat &subWindow, Point centraCoor, Size sz, Mat &cos_window){
 	Point lefttop;
-	lefttop.x = max(centraCoor.x - (sz.width>>1),1);
-	lefttop.y = max(centraCoor.y - (sz.height>>1),1);
+	lefttop.x = max(centraCoor.x - (sz.width>>1), 0);
+	lefttop.y = max(centraCoor.y - (sz.height>>1), 0);
 	Point rightbottom;
-	rightbottom.x = min(centraCoor.x + (sz.width >>1),frame.cols);
-	rightbottom.y = min(centraCoor.y + (sz.height>>1),frame.rows);
+	rightbottom.x = min(centraCoor.x + int(ceil(float(sz.width) / 2.0)), frame.cols - 1);
+	rightbottom.y = min(centraCoor.y + int(ceil(float(sz.height) / 2.0)), frame.rows - 1);
 	Rect roiRect(lefttop, rightbottom);
 	frame(roiRect).copyTo(subWindow);
-	cv::resize(subWindow, subWindow, sz);
+	cv::Rect border(-min(centraCoor.x - (sz.width >> 1), 0), -min(centraCoor.y - (sz.height >> 1), 0),
+		max(centraCoor.x + int(ceil(float(sz.width) / 2.0)) - (frame.cols - 1), 0), max(centraCoor.y + int(ceil(float(sz.height) / 2.0)) - (frame.rows - 1), 0));
+
+	if (border != Rect(0,0,0,0))
+	{
+		cv::copyMakeBorder(subWindow, subWindow, border.y, border.height, border.x, border.width, cv::BORDER_CONSTANT);
+	}
+
 	subWindow.convertTo(subWindow, CV_32FC1,1.0/255.0,-0.5);
 	subWindow = subWindow.mul(cos_window);
 }
