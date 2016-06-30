@@ -8,11 +8,13 @@ using namespace cv;
 using namespace std;
 
 
-string benchmarkPath = "E:/benchmark50/";
+string benchmarkPath = "/users/wangqiang/Desktop/benchmark100/";
 string videoName = "Boy";
 string videoPath = benchmarkPath + videoName;
 vector<Rect> groundtruthRect;
 vector<String>fileName;
+
+
 
 int main(){
 
@@ -29,8 +31,10 @@ int main(){
 
 	Size target_sz(groundtruthRect[0].width, groundtruthRect[0].height);
 	Size sz(target_sz.width * (1 + padding), target_sz.height * (1 + padding));
-	//Size sz(target_sz.width * 2, target_sz.height*2);
-	Point pos(groundtruthRect[0].x + (target_sz.width >> 1), groundtruthRect[0].y + (target_sz.height >> 1));
+	//Point pos(groundtruthRect[0].x + (target_sz.width >> 1), groundtruthRect[0].y + (target_sz.height >> 1));
+    Point pos = centerRect(groundtruthRect[0]);
+    
+    
 	
 	float output_sigma = sqrt(float(target_sz.area())) * output_sigma_factor;
 	Mat y = getGaussian2(sz, output_sigma, CV_32F);

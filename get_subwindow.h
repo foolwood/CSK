@@ -1,7 +1,6 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/core.hpp"
 #include <cmath>
 
 using namespace std;
@@ -22,3 +21,8 @@ cv::Mat fft(Mat x);
 cv::Mat complexMul(Mat x1, Mat x2);
 
 cv::Mat complexDiv(Mat x1, Mat x2);
+
+static inline cv::Point2f centerRect(const cv::Rect& r)
+{
+    return cv::Point2f(r.x+((float)r.width)/2, r.y+((float)r.height)/2);
+}
