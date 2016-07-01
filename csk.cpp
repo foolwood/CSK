@@ -1,17 +1,19 @@
-#include "get_subwindow.h"
+#include "csk.h"
 #define PI 3.141592653589793
 
 void getSubWindow(Mat &frame, Mat &subWindow, Point centraCoor, Size sz, Mat &cos_window){
-	Point lefttop;
-	lefttop.x = max(centraCoor.x - (sz.width>>1), 0);
-	lefttop.y = max(centraCoor.y - (sz.height>>1), 0);
-	Point rightbottom;
-	rightbottom.x = min(centraCoor.x + int(ceil(float(sz.width) / 2.0)), frame.cols - 1);
-	rightbottom.y = min(centraCoor.y + int(ceil(float(sz.height) / 2.0)), frame.rows - 1);
-	Rect roiRect(lefttop, rightbottom);
+    
+    Point lefttop(centraCoor.x - cvFloor(float(sz.width)/2.0),centraCoor.y - cvFloor(float(sz.height)/2.0));
+    Point rightbottom(centraCoor.x + cvCeil(float(sz.width)/2.0),centraCoor.y + cvCeil(float(sz.height)/2.0));
+    
+    Rect border(-min(lefttop.x,0),-min(lefttop.y,0),
+                 max(rightbottom.x- frame.cols+1,0),max(rightbottom.y- frame.rows+1,0));
+    
+    Point lefttopLimit(max(lefttop.x,0),max(lefttop.y,0));
+    Point rightbottomLimit(min(rightbottom.x,frame.cols-1),min(rightbottom.y,frame.rows-1));
+	
+    Rect roiRect(lefttopLimit, rightbottomLimit);
 	frame(roiRect).copyTo(subWindow);
-	cv::Rect border(-min(centraCoor.x - (sz.width >> 1), 0), -min(centraCoor.y - (sz.height >> 1), 0),
-		max(centraCoor.x + int(ceil(float(sz.width) / 2.0)) - (frame.cols - 1), 0), max(centraCoor.y + int(ceil(float(sz.height) / 2.0)) - (frame.rows - 1), 0));
 
 	if (border != Rect(0,0,0,0))
 	{

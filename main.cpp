@@ -2,7 +2,7 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 #include "load_video_info.h"
-#include "get_subwindow.h"
+#include "csk.h"
 
 using namespace cv;
 using namespace std;
@@ -22,16 +22,17 @@ int main(){
 		return -1;
 
 	float padding = 4;					
-	float output_sigma_factor = 1.0/16.0;		
+	float output_sigma_factor = 1.0/16.0;
 	float sigma = 0.2;
-	float lambda = 1e-2;
+	float lambda = 0.01;
 	float interp_factor = 0.075;
 
 	
 
 	Size target_sz(groundtruthRect[0].width, groundtruthRect[0].height);
-	Size sz(target_sz.width * (1 + padding), target_sz.height * (1 + padding));
-	//Point pos(groundtruthRect[0].x + (target_sz.width >> 1), groundtruthRect[0].y + (target_sz.height >> 1));
+    Size sz = scale_size(target_sz, (1.0+padding));
+    groundtruthRect[0].x -=1;
+    groundtruthRect[0].y -=1;
     Point pos = centerRect(groundtruthRect[0]);
     
     
@@ -40,7 +41,7 @@ int main(){
 	Mat y = getGaussian2(sz, output_sigma, CV_32F);
 	Mat yf = fft(y);
 
-	Mat cos_window(target_sz, CV_32FC1);
+	Mat cos_window(sz, CV_32FC1);
 	calculateHann(cos_window, sz);
 
 	Mat im;
@@ -69,8 +70,8 @@ int main(){
 			cv::idft(complexMul(alphaf,kf), response, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT); // Applying IDFT
 			Point maxLoc;
 			minMaxLoc(response, NULL, NULL, NULL, &maxLoc);
-			pos.x = pos.x - cvCeil(float(sz.width) / 2) + maxLoc.x;
-			pos.y = pos.y - cvCeil(float(sz.height) / 2) + maxLoc.y;
+			pos.x = pos.x - cvRound(float(sz.width) / 2.0) + maxLoc.x;
+			pos.y = pos.y - cvRound(float(sz.height) / 2.0) + maxLoc.y;
 		}
 		
 
@@ -98,7 +99,7 @@ int main(){
 		}
 		toc = getTickCount() - tic;
 		time += toc;
-		Rect rect_position(pos.x - (target_sz.width >> 1), pos.y - (target_sz.height >> 1), target_sz.width, target_sz.height);
+		Rect rect_position(pos.x - target_sz.width /2, pos.y - target_sz.height/2, target_sz.width, target_sz.height);
 		rectangle(im, rect_position, Scalar(0, 255, 0), 2);
 		putText(im, to_string(frame), Point(20, 40), 6, 1, Scalar(0, 255, 255), 2);
 		imshow(videoName, im);
@@ -109,6 +110,6 @@ int main(){
 	}
 	time = time / getTickFrequency();
 	std::cout << "Time: " << time << "    fps:" << fileName.size()/time << endl;
-	getchar();
+    waitKey();
 	return 0;
 }
