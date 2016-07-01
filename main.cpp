@@ -21,7 +21,7 @@ int main(){
 	if (load_video_info(videoPath, groundtruthRect,fileName) != 1)
 		return -1;
 
-	float padding = 4;					
+	float padding = 2.5;
 	float output_sigma_factor = 1.0/16.0;
 	float sigma = 0.2;
 	float lambda = 0.01;
@@ -70,8 +70,8 @@ int main(){
 			cv::idft(complexMul(alphaf,kf), response, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT); // Applying IDFT
 			Point maxLoc;
 			minMaxLoc(response, NULL, NULL, NULL, &maxLoc);
-			pos.x = pos.x - cvRound(float(sz.width) / 2.0) + maxLoc.x;
-			pos.y = pos.y - cvRound(float(sz.height) / 2.0) + maxLoc.y;
+			pos.x = pos.x - cvCeil(float(sz.width) / 2.0) + maxLoc.x;
+			pos.y = pos.y - cvCeil(float(sz.height) / 2.0) + maxLoc.y;
 		}
 		
 
