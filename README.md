@@ -1,5 +1,5 @@
 # CSK
-I just want to build a c++ code for CSK.
+I just want to build a c++ preject for CSK.
 
 Reference
 ----------
