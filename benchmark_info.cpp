@@ -1,17 +1,19 @@
-#include "load_video_info.h"
+#include "benchmark_info.h"
 
 int load_video_info(string videoPath, vector<Rect> &groundtruthRect, vector<String> &fileName){
 	
 	string txt_path = videoPath + "/groundtruth_rect.txt";
 	ifstream infile;
 	infile.open(txt_path);
+  if (!infile){ cout << "No groundtruth_rect.txt" << endl; return -1; }
+
 	vector<Rect>result;
 	string s;
 	int tmp1, tmp2, tmp3, tmp4;
+  
 
 	while (getline(infile, s))
 	{
-		//cout << s << endl;
 		replace(s.begin(), s.end(), ',', ' ');
 		stringstream ss;
 		ss.str(s);
@@ -42,6 +44,9 @@ int load_video_info(string videoPath, vector<Rect> &groundtruthRect, vector<Stri
 			fileName.push_back(filenames[i]);
 	}
 
+  if (fileName.size() == 0){
+    cout << "No image!!" << endl; return -1;
+  }
 	sort(fileName.begin(), fileName.end());
 
 	return 1;

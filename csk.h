@@ -6,25 +6,23 @@
 using namespace std;
 using namespace cv;
 
-void getSubWindow(Mat &frame, Mat &subWindow, Point centraCoor, Size sz, Mat &cos_window);
+void GetSubWindow(const Mat &frame, Mat &subWindow, Point centraCoor, Size sz, Mat &cos_window);
 
-void calculateHann(Mat &cos_window, Size sz);
+void CalculateHann(Mat &cos_window, Size sz);
 
-void denseGaussKernel(float sigma, Mat x, Mat y, Mat &k);
+void DenseGaussKernel(float sigma, const Mat &x, const Mat &y, Mat &k);
 
-cv::Mat getGaussian1(int n, double sigma, int ktype);
+cv::Mat CreateGaussian1(int n, double sigma, int ktype);
 
-cv::Mat getGaussian2(Size sz, double sigma, int ktype);
+cv::Mat CreateGaussian2(Size sz, double sigma, int ktype);
 
-cv::Mat fft(Mat x);
+cv::Mat ComplexMul(const Mat &x1, const Mat &x2);
 
-cv::Mat complexMul(Mat x1, Mat x2);
+cv::Mat ComplexDiv(const Mat &x1, const Mat &x2);
 
-cv::Mat complexDiv(Mat x1, Mat x2);
-
-static inline cv::Point centerRect(const cv::Rect& r)
+static inline cv::Point2d centerRect(const cv::Rect& r)
 {
-    return cv::Point(r.x+cvRound(float(r.width) / 2.0), r.y+cvRound(float(r.height) / 2.0));
+  return cv::Point(r.x + cvFloor(double(r.width) / 2.0), r.y + cvFloor(double(r.height) / 2.0));
 }
 
 static inline cv::Rect scale_rect(const cv::Rect& r, float scale)
@@ -38,12 +36,12 @@ static inline cv::Rect scale_rect(const cv::Rect& r, float scale)
     return cv::Rect(x, y, cvRound(width), cvRound(height));
 }
 
-static inline cv::Size scale_size(const cv::Size& r, float scale)
+static inline cv::Size scale_size(const cv::Size& r, double scale)
 {
-    float width  = r.width  * scale;
-    float height = r.height * scale;
+    double width  = double(r.width)  * scale;
+    double height = double(r.height) * scale;
     
-    return cv::Size(cvRound(width), cvRound(height));
+    return cv::Size(cvFloor(width), cvFloor(height));
 }
 
 static inline cv::Size scale_sizexy(const cv::Size& r, float scalex,float scaley)
