@@ -1,3 +1,8 @@
+/*******************************************************************************
+* Created by Qiang Wang on 16/7.24
+* Copyright 2016 Qiang Wang.  [wangqiang2015-at-ia.ac.cn]
+* Licensed under the Simplified BSD License
+*******************************************************************************/
 #include "opencv2/opencv.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"

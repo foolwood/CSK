@@ -1,3 +1,8 @@
+/*******************************************************************************
+* Created by Qiang Wang on 16/7.24
+* Copyright 2016 Qiang Wang.  [wangqiang2015-at-ia.ac.cn]
+* Licensed under the Simplified BSD License
+*******************************************************************************/
 #include "benchmark_info.h"
 
 int load_video_info(string base_path,string video_name, vector<Rect> &groundtruthRect, vector<String> &fileName){
