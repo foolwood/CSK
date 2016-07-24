@@ -6,7 +6,7 @@ I just want to build a c++ preject for CSK.
 
 
 ##It looks like MATLAB.
-![CSK](Command Window.png)
+![CSK](command_window.png)
 
 ##Simple gui(I will change it to the KCF version 2 via Trackbar)
 It's quite difficult to draw gui like MATLAB,but the Trackbar function is quite useful!(if you tried KCF MATLAB code)
