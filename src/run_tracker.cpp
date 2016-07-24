@@ -1,4 +1,5 @@
 #include <iostream>
+#include <numeric>      // std::accumulate
 #include <string>
 #include "opencv2/opencv.hpp"
 #include "csk.h"
@@ -7,11 +8,11 @@
 using namespace std;
 using namespace cv;
 
-int tracker(string video_path, string video_name);
+int tracker(string video_path, string video_name,double &precision,double &fps);
 vector<double>PrecisionCalculate(vector<Rect>groundtruth_rect, vector<Rect>result_rect);
 
 int main(int argc, char** argv){
-  string benchmark_path = "E:\\50Benchmark";
+  string benchmark_path = "E:\\50Benchmark\\";
   vector<string>video_path_list, video_name_list;
 
   getFiles(benchmark_path, video_path_list, video_name_list);
@@ -26,18 +27,24 @@ int main(int argc, char** argv){
   if (mode == "all")
   {
     cout << ">> run_tracker('all')"<<endl;
+    vector<double>all_precision, all_fps;
+    double precision, fps;
     for (int i = 0; i < video_name_list.size(); i++)
     {
       string video_name = video_name_list[i];
-      string video_path = video_path_list[i];
-      tracker(video_path,video_name);
+      tracker(benchmark_path, video_name, precision, fps);
+      all_precision.push_back(precision);
+      all_fps.push_back(fps);
     }
+    double mean_precision = std::accumulate(all_precision.begin(), all_precision.end(), 0.0) / double(all_precision.size());
+    double mean_fps = std::accumulate(all_fps.begin(), all_fps.end(), 0.0) / double(all_fps.size());
+    printf("\nAverage precision (20px):%1.3f, Average FPS:%4.2f\n\n", mean_precision, mean_fps);
   }
   else{
     int choice = 0;
     for (int i = 0; i < video_name_list.size(); i++)
     {
-      printf(" %02d  %12s\n", i, video_name_list[i]);
+      std::printf(" %02d  %12s\n", i, video_name_list[i]);
     }
     cout << "\n\nChoice One Video!!" << endl;
     cin >> choice;
@@ -47,19 +54,20 @@ int main(int argc, char** argv){
       return 0;
     }
     string video_name = video_name_list[choice];
-    string video_path = video_path_list[choice];
-    tracker(video_path, video_name);
+    double precision, fps;
+    tracker(benchmark_path, video_name, precision, fps);
   }
+  system("PAUSE");
   return 0;
 }
 
 
 
-int tracker(string video_path,string video_name){
+int tracker(string video_path, string video_name, double &precision, double &fps){
 
   vector<Rect> groundtruth_rect;
   vector<String>img_files;
-  if (load_video_info(video_path, groundtruth_rect, img_files) != 1)
+  if (load_video_info(video_path, video_name, groundtruth_rect, img_files) != 1)
     return -1;
 
   double padding = 1;
@@ -68,8 +76,6 @@ int tracker(string video_path,string video_name){
   double lambda = 1e-2;
   double interp_factor = 0.075;
 
-  groundtruth_rect[0].x -= 1;     //cpp is zero based
-  groundtruth_rect[0].y -= 1;
   Point pos = centerRect(groundtruth_rect[0]);
   Size target_sz(groundtruth_rect[0].width, groundtruth_rect[0].height);
   bool resize_image = false;
@@ -111,13 +117,12 @@ int tracker(string video_path,string video_name){
     }
 
     tic = getTickCount();
-    GetSubWindow(im_gray, x, pos, sz, cos_window);
-
 
     if (frame > 0)
     {
+      GetSubWindow(im_gray, x, pos, sz, cos_window);
       DenseGaussKernel(sigma, x, z, k);
-      dft(k, kf, DFT_COMPLEX_OUTPUT);
+      cv::dft(k, kf, DFT_COMPLEX_OUTPUT);
       cv::idft(ComplexMul(alphaf, kf), response, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT); // Applying IDFT
       Point maxLoc;
       minMaxLoc(response, NULL, NULL, NULL, &maxLoc);
@@ -162,8 +167,10 @@ int tracker(string video_path,string video_name){
   }
   time = time / getTickFrequency();
   vector<double>precisions = PrecisionCalculate(groundtruth_rect, result_rect);
-  printf("%12s - Precision (20px):%1.3f, FPS:%4.2f\n", video_name, precisions[20], img_files.size() / time);
+  printf("%12s - Precision (20px):%1.3f, FPS:%4.2f\n", video_name, precisions[20], double(img_files.size()) / time);
   destroyAllWindows();
+  precision = precisions[20];
+  fps = double(img_files.size()) / time;
   return 0;
 }
 

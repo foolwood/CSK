@@ -1,16 +1,22 @@
 #include "csk.h"
 #define PI 3.141592653589793
 
-void CircShift(Mat &x){
-  int cxl = cvFloor(float(x.cols) / 2);
-  int cyl = cvFloor(float(x.rows) / 2);
-  int cxh = cvCeil(float(x.cols) / 2);
-  int cyh = cvCeil(float(x.rows) / 2);
+void CircShift(Mat &x, Size k){
+  int cx, cy;
+  if (k.width < 0)
+    cx = -k.width;
+  else
+    cx = x.cols - k.width;
 
-  Mat q0(x, Rect(0, 0, cxh, cyh));   // Top-Left - Create a ROI per quadrant
-  Mat q1(x, Rect(cxh, 0, cxl, cyh));  // Top-Right
-  Mat q2(x, Rect(0, cyh, cxh, cyl));  // Bottom-Left
-  Mat q3(x, Rect(cxh, cyh, cxl, cyl)); // Bottom-Right
+  if (k.height < 0)
+    cy = -k.height;
+  else
+    cy = x.rows - k.height;
+
+  Mat q0(x, Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
+  Mat q1(x, Rect(cx, 0, x.cols - cx, cy));  // Top-Right
+  Mat q2(x, Rect(0, cy, cx, x.rows - cy));  // Bottom-Left
+  Mat q3(x, Rect(cx, cy, x.cols - cx, x.rows - cy)); // Bottom-Right
 
   Mat tmp1, tmp2;                           // swap quadrants (Top-Left with Bottom-Right)
   hconcat(q3, q2, tmp1);
@@ -21,21 +27,64 @@ void CircShift(Mat &x){
 
 void GetSubWindow(const Mat &frame, Mat &subWindow, Point centraCoor, Size sz, Mat &cos_window){
   
-  Point lefttop(centraCoor.x - cvFloor(float(sz.width)/2.0)+1,centraCoor.y - cvFloor(float(sz.height)/2.0)+1);
-  Point rightbottom(centraCoor.x + cvCeil(float(sz.width) / 2.0)+1, centraCoor.y + cvCeil(float(sz.height) / 2.0)+1);
+  Point lefttop(cvFloor(centraCoor.x) - cvFloor(float(sz.width) / 2.0) + 1, cvFloor(centraCoor.y) - cvFloor(float(sz.height) / 2.0) + 1);
+  Point rightbottom(cvFloor(centraCoor.x) - cvFloor(float(sz.width) / 2.0) + sz.width+1, cvFloor(centraCoor.y) - cvFloor(float(sz.height) / 2.0) + sz.height+1);
+  Rect idea_rect(lefttop, rightbottom);
+  Rect true_rect = idea_rect&Rect(0, 0, frame.cols, frame.rows);
+  Rect border(0, 0, 0, 0);
+  if (true_rect.area() == 0)
+  {
+    int x_start, x_width, y_start, y_height;
     
-  Rect border(-min(lefttop.x,0),-min(lefttop.y,0),
-                max(rightbottom.x- frame.cols+1,0),max(rightbottom.y- frame.rows+1,0));
+    x_start = min(frame.cols-1,max(0,idea_rect.x));
+    x_width = max(1,min( idea_rect.x + idea_rect.width,frame.cols) - x_start);
+    y_start = min(frame.rows - 1, max(0, idea_rect.y));
+    y_height = max(1, min(idea_rect.y + idea_rect.height,frame.rows) - y_start);
+
+    true_rect = Rect(x_start, y_start, x_width, y_height);
     
-  Point lefttopLimit(max(lefttop.x,0),max(lefttop.y,0));
-  Point rightbottomLimit(min(rightbottom.x,frame.cols-1),min(rightbottom.y,frame.rows-1));
-	
-  Rect roiRect(lefttopLimit, rightbottomLimit);
-  frame(roiRect).copyTo(subWindow);
+    if ((idea_rect.x + idea_rect.width - 1) < 0)
+      border.x = sz.width - 1;
+    else if (idea_rect.x > (frame.cols-1))
+      border.width = sz.width - 1;
+    else
+    {
+      if (idea_rect.x < 0)
+        border.x = -idea_rect.x;
+      if ((idea_rect.x + idea_rect.width) > frame.cols)
+        border.width = idea_rect.x + idea_rect.width - frame.cols;
+    }
+
+    if ((idea_rect.y + idea_rect.height - 1) < 0)
+      border.y = sz.height - 1;
+    else if (idea_rect.y > (frame.rows - 1))
+      border.height = sz.height - 1;
+    else
+    {
+      if (idea_rect.y < 0)
+        border.y = -idea_rect.y;
+      if ((idea_rect.y + idea_rect.height) > frame.rows)
+        border.height = idea_rect.y + idea_rect.height - frame.rows;
+    }
+
+    frame(true_rect).copyTo(subWindow);
+  }
+  else if (true_rect.area() == idea_rect.area())
+  {
+    frame(true_rect).copyTo(subWindow);
+  }
+  else
+  {
+    frame(true_rect).copyTo(subWindow);
+    border.y = true_rect.y - idea_rect.y;
+    border.height = idea_rect.y + idea_rect.height - true_rect.y - true_rect.height;
+    border.x = true_rect.x - idea_rect.x;
+    border.width = idea_rect.x + idea_rect.width - true_rect.x - true_rect.width;
+  }
 
   if (border != Rect(0,0,0,0))
   {
-    cv::copyMakeBorder(subWindow, subWindow, border.y, border.height, border.x, border.width, cv::BORDER_CONSTANT);
+    cv::copyMakeBorder(subWindow, subWindow, border.y, border.height, border.x, border.width, cv::BORDER_REPLICATE);
   }
 
   subWindow.convertTo(subWindow, CV_64FC1,1.0/255.0,-0.5);
@@ -66,7 +115,7 @@ void DenseGaussKernel(float sigma, const Mat &x,const Mat &y, Mat &k){
 
 	Mat xy;
 	cv::idft(xyf, xy, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT); // Applying IDFT
-  CircShift(xy);
+  CircShift(xy, scale_size(x.size(),0.5));
 	double numelx1 = x.cols*x.rows;
 	//exp((-1 / (sigma*sigma)) * abs((xx + yy - 2 * xy) / numelx1), k); //thsi setting is fixed by version 2(KCF)
   exp((-1 / (sigma*sigma)) * max(0,(xx + yy - 2 * xy) / numelx1), k);
